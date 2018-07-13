@@ -1,5 +1,5 @@
 {
-  "name": "swish/router",
+  "name": "modulusphp/swish",
   "description": "Simple and easy to use PHP routing system",
   "version": "0.1",
   "license": "MIT",
@@ -12,7 +12,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "Swish\\Router\\": ""
+      "ModulusPHP\\Swish\\": ""
     }
   },
   "minimum-stability": "stable"
