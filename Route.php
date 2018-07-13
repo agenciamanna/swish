@@ -182,4 +182,53 @@ class Route
 	{
 		return self::add('DELETE', $pattern, $callback);
 	}
+
+	/**
+	 * Return current url without query string
+	 *
+	 * @return string
+	 */
+	private function url()
+	{
+		$length = strlen($this->uri());
+
+		return str_replace(
+			$this->query(),'',
+			substr($this->uri(), -1) == '/' ? substr($this->uri(), 0, $length - 1) : $this->uri()
+		);
+	}
+
+	/**
+	 * Return current url
+	 *
+	 * @return string
+	 */
+	private function uri()
+	{
+		return $_SERVER['REQUEST_URI'];
+	}
+
+	/**
+	 * Return query string
+	 *
+	 * @return string $query
+	 */
+	private function query()
+	{
+		if (isset($_SERVER['QUERY_STRING'])) {
+			$this->query = '?' . $_SERVER['QUERY_STRING'];
+		}
+
+		return $this->query;
+	}
+
+	/**
+	 * Get current method
+	 *
+	 * @return string
+	 */
+	private function method()
+	{
+		return $_SERVER['REQUEST_METHOD'];
+	}
 }
