@@ -8,6 +8,20 @@ use Exception;
 class Route
 {
 	/**
+	 * Application routes
+	 *
+	 * @var $routes
+	 */
+	static public $routes = [];
+
+	/**
+	 * Application
+	 *
+	 * @var $application
+	 */
+	static public $application;
+
+	/**
 	 * Route id
 	 *
 	 * @var $id
@@ -48,4 +62,12 @@ class Route
 	 * @var $middleware
 	 */
 	private $middleware = [];
+
+	/**
+	 * Set application provider
+	 */
+	public static function provider($app)
+	{
+		self::$application = $app;
+	}
 }
