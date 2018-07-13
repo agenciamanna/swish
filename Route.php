@@ -134,4 +134,52 @@ class Route
 
 		return $this;
 	}
+
+	/**
+	 * Add a new get route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function get($pattern, $callback)
+	{
+		return self::add('GET', $pattern, $callback);
+	}
+
+	/**
+	 * Add a new post route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function post($pattern, $callback)
+	{
+		return self::add('POST', $pattern, $callback);
+	}
+
+	/**
+	 * Add a new put route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function put($pattern, $callback)
+	{
+		return self::add('PUT', $pattern, $callback);
+	}
+
+	/**
+	 * Add a new delete route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function delete($pattern, $callback)
+	{
+		return self::add('DELETE', $pattern, $callback);
+	}
 }
