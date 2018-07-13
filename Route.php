@@ -103,4 +103,35 @@ class Route
 
 		return $route;
 	}
+
+	/**
+	 * Set route name
+	 *
+	 * @param  string $name
+	 * @return object $this
+	 */
+	public function name($name)
+	{
+		$this->name = $name;
+		self::$routes[$this->key]['name'] = $name;
+		return $this;
+	}
+
+	/**
+	 * Set route middlware
+	 *
+	 * @param  string $name
+	 * @return object $this
+	 */
+	public function middleware($middleware)
+	{
+		$middlewares = explode(':', $middleware);
+
+		foreach($middlewares as $middleware) {
+			$this->middleware[] = $middleware;
+			self::$routes[$this->key]['middleware'][] = $middleware;
+		}
+
+		return $this;
+	}
 }
