@@ -70,4 +70,37 @@ class Route
 	{
 		self::$application = $app;
 	}
+
+	/**
+	 * Register application routes
+	 *
+	 * @param  string  $method
+	 * @param  string  $pattern
+	 * @param
+	 * @return object  $route
+	 */
+	public static function add($method, $pattern, $callback)
+	{
+		$route = new Route;
+
+		$pattern = substr($pattern, 0, 1) == "/" ? $pattern : '/' . $pattern;
+
+		$route->id = uniqid('route_');
+		$route->pattern = $pattern;
+		$route->callback = $callback;
+
+		self::$routes[] = [
+			'id' => $route->id,
+			'name' => '',
+			'middleware' => [],
+			'pattern' => $route->pattern,
+			'callback' => is_string($callback) ? $callback : $callback,
+			'method' => $method
+		];
+
+		end(self::$routes);
+		$route->key = key(self::$routes);
+
+		return $route;
+	}
 }
