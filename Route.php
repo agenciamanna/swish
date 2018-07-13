@@ -1,6 +1,6 @@
 <?php
 
-namespace Swish\Router;
+namespace ModulusPHP\Swish;
 
 use Closure;
 use Exception;
