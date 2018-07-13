@@ -136,6 +136,19 @@ class Route
 	}
 
 	/**
+	 * Grouped routes
+	 *
+	 * @param  array   $group
+	 * @param  closure $callback
+	 * @return
+	 */
+	public static function group(Array $group, Closure $callback)
+	{
+		self::$group = $group;
+		call_user_func($callback);
+	}
+
+	/**
 	 * Add a new get route
 	 *
 	 * @param  string $pattern
