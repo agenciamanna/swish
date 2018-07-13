@@ -1,0 +1,19 @@
+{
+  "name": "swish/router",
+  "description": "Simple and easy to use PHP routing system",
+  "version": "0.1",
+  "license": "MIT",
+  "type": "package",
+  "authors": [
+    {
+      "name": "Donald Pakkies",
+      "email": "donaldpakkies@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Swish\\Router\\": ""
+    }
+  },
+  "minimum-stability": "stable"
+}
