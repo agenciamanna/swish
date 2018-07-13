@@ -184,6 +184,135 @@ class Route
 	}
 
 	/**
+	 * Find matching route for the current url
+	 *
+	 * @param  string $name
+	 * @return
+	 */
+	public static function dispatch($name = null)
+	{
+		$app = self::$application;
+		$router = new Route;
+		$routes = self::$routes;
+
+		foreach($routes as $route) {
+			if ($name != null && $route['name'] == $name) {
+				self::$current = $route;
+				$route['variables'] = [];
+
+				return $router->handle($app, (object)$route, []);
+			}
+
+			if ($route['method'] == $router->method()) {
+				$matches = $router->match($route['pattern']);
+
+				if ($matches) {
+					self::$current = $route;
+					$route['variables'] = $matches;
+
+					return $router->handle($app, (object)$route, $matches);
+				}
+			}
+		}
+
+		$code = $router->isNotAllowed($router, $routes) ? 405 : 404;
+
+		call_user_func_array([$app, 'fail'], [$router->isAjax(), $code]);
+		return false;
+	}
+
+	/**
+	 * Check route status
+	 *
+	 * @param  object  $router
+	 * @param  array   $routes
+	 * @return boolean
+	 */
+	public function isNotAllowed($router, $routes)
+	{
+		foreach($routes as $route) {
+			if ($router->match($route['pattern'])) {
+				return true;
+			}
+		}
+	}
+
+	/**
+	 * Execute route
+	 *
+	 * @param  object  $app
+	 * @param  object  $route
+	 * @param  array   $matches
+	 * @return boolean
+	 */
+	private function handle($app, $route, $matches)
+	{
+		if (is_string($route->callback)) {
+			$controller = $app->controller['namespace'] . '\\' . explode('@', $route->callback)[0];
+
+			if (!class_exists($controller)) $this->exception(
+				"Class '$controller' not found."
+			);
+
+			$class = new $controller;
+			$method = explode('@', $route->callback)[1];
+
+			if (!method_exists($class, $method)) $this->exception(
+				"Method $controller::$method() does not exist"
+			);
+
+			$response = $app->before($route, [$class, $method]);
+			if ($response != [] || $response !== false) {
+				$matches = $response;
+			}
+
+			call_user_func_array(
+				[$class, $method],
+				is_array($matches) ? $matches : []
+			);
+
+			$app->after($route, [$class, $method]);
+
+			return true;
+		}
+
+		$response = $app->before($route, $route->callback);
+
+		if ($response != [] || $response !== false) {
+			$matches = $response;
+		}
+
+		call_user_func_array(
+			$route->callback,
+			is_array($matches) ? $matches : []
+		);
+
+		$app->after($route, $route->callback);
+
+		return true;
+	}
+
+	/**
+	 * Check if current request is xmlhttp or http
+	 *
+	 * @return boolean
+	 */
+	public function isAjax() {
+		return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+				($_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest'));
+	}
+
+	/**
+	 * Return current route
+	 *
+	 * @return array $current
+	 */
+	public static function current()
+	{
+		return self::$current;
+	}
+
+	/**
 	 * Return current url without query string
 	 *
 	 * @return string
