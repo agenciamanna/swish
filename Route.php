@@ -83,18 +83,39 @@ class Route
 	{
 		$route = new Route;
 
+		$globalMiddleware = [];
+		$globalPattern = $globalNamespace = '';
+
+		if (isset(debug_backtrace()[2]) && debug_backtrace()[2]['function'] == '{closure}') {
+			if (isset(self::$group['middleware'])) {
+				array_merge(
+				$globalMiddleware,
+				self::$group['middleware']
+				);
+			}
+
+			if (isset(self::$group['prefix'])) {
+				$globalPattern = substr(self::$group['prefix'], 0, 1) === "/" ?
+										self::$group['prefix'] : '/' . self::$group['prefix'];
+			}
+
+			if (isset(self::$group['namespace'])) {
+				$globalNamespace = self::$group['namespace'] . '\\';
+			}
+		};
+
 		$pattern = substr($pattern, 0, 1) == "/" ? $pattern : '/' . $pattern;
 
 		$route->id = uniqid('route_');
-		$route->pattern = $pattern;
-		$route->callback = $callback;
+		$route->pattern = $globalPattern . $pattern;
+		$route->callback = is_string($callback) ? $globalNamespace . $callback : $callback;
 
 		self::$routes[] = [
 			'id' => $route->id,
 			'name' => '',
 			'middleware' => [],
 			'pattern' => $route->pattern,
-			'callback' => is_string($callback) ? $callback : $callback,
+			'callback' => is_string($callback) ? $globalNamespace . $callback : $callback,
 			'method' => $method
 		];
 
@@ -372,5 +393,44 @@ class Route
 	private function method()
 	{
 		return $_SERVER['REQUEST_METHOD'];
+	}
+
+	/**
+	 * Match route with current url
+	 *
+	 * @param  string $pattern
+	 * @return array  $matches
+	 */
+	private function match($pattern)
+	{
+		$pattern = substr($pattern, -1) == '/' ? substr($pattern, 0, strlen($pattern) - 1) : $pattern ;
+
+		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
+		$pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
+
+		preg_match(
+			$pattern_regex,
+			trim($this->url(), "/"),
+			$matches
+		);
+
+		if (count($matches) == 1 && $pattern == '') {
+			return true;
+		}
+		else if ($pattern == $this->url()) {
+			return true;
+		}
+
+		if ($matches) {
+			return array_intersect_key(
+				$matches,
+				array_flip(
+					array_filter(array_keys(
+						$matches),
+						'is_string'
+					)
+				)
+			);;
+		}
 	}
 }
