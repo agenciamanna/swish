@@ -36,6 +36,13 @@ class Route
 	static private $current;
 
 	/**
+	 * Request query
+	 *
+	 * @var $query
+	 */
+	private $query;
+
+	/**
 	 * Route id
 	 *
 	 * @var $id
@@ -103,8 +110,8 @@ class Route
 		if (isset(debug_backtrace()[2]) && debug_backtrace()[2]['function'] == '{closure}') {
 			if (isset(self::$group['middleware'])) {
 				array_merge(
-				$globalMiddleware,
-				self::$group['middleware']
+					$globalMiddleware,
+					self::$group['middleware']
 				);
 			}
 
@@ -192,7 +199,7 @@ class Route
 	 */
 	public static function get($pattern, $callback)
 	{
-		return self::add('GET', $pattern, $callback);
+		return self::add(['GET'], $pattern, $callback);
 	}
 
 	/**
@@ -204,7 +211,7 @@ class Route
 	 */
 	public static function post($pattern, $callback)
 	{
-		return self::add('POST', $pattern, $callback);
+		return self::add(['POST'], $pattern, $callback);
 	}
 
 	/**
@@ -216,7 +223,7 @@ class Route
 	 */
 	public static function put($pattern, $callback)
 	{
-		return self::add('PUT', $pattern, $callback);
+		return self::add(['PUT'], $pattern, $callback);
 	}
 
 	/**
@@ -228,7 +235,19 @@ class Route
 	 */
 	public static function delete($pattern, $callback)
 	{
-		return self::add('DELETE', $pattern, $callback);
+		return self::add(['DELETE'], $pattern, $callback);
+	}
+
+	/**
+	 * Add a new options route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function options(array $methods, $pattern, $callback)
+	{
+		return self::add($methods, $pattern, $callback);
 	}
 
 	/**
@@ -251,7 +270,7 @@ class Route
 				return $router->handle($app, (object)$route, []);
 			}
 
-			if ($route['method'] == $router->method()) {
+			if (in_array($router->method(), $route['method'])) {
 				$matches = $router->match($route['pattern']);
 
 				if ($matches) {
