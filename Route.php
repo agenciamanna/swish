@@ -224,7 +224,7 @@ class Route
 	 * @param  string $name
 	 * @return object $this
 	 */
-	public function middleware($middleware)
+	public function middleware(string $middleware)
 	{
 		$middlewares = explode(':', $middleware);
 
