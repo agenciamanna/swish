@@ -406,7 +406,7 @@ class Route
 
 	private function failed($routes, $code = null)
 	{
-		$code = $code == null ? ($this->isNotAllowed($this, $routes) ? 405 : 404) : $code;
+		$code = $code == null ? ($this->isNotAllowed($routes) ? 405 : 404) : $code;
 
 		header('HTTP/1.1 '.$code);
 		return call_user_func_array(self::$failEvent, [$this->isAjax(), $code]);
@@ -434,10 +434,10 @@ class Route
 	 * @param  array   $routes
 	 * @return boolean
 	 */
-	public function isNotAllowed($router, $routes)
+	private function isNotAllowed($routes)
 	{
 		foreach($routes as $route) {
-			if ($router->match($route['pattern'])) {
+			if ($this->match($route['pattern'])) {
 				return true;
 			}
 		}
