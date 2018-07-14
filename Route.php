@@ -259,6 +259,13 @@ class Route
 		return self::add($methods, $pattern, $callback);
 	}
 
+	/**
+	 * Add a new redirect route
+	 *
+	 * @param  string $pattern
+	 * @param  string $redirect
+	 * @return object
+	 */
 	public static function redirect($pattern, $redirect)
 	{
 		return self::add(['GET', 'POST', 'PUT', 'DELETE'], $pattern, $redirect, true);
@@ -328,6 +335,11 @@ class Route
 		}
 	}
 
+	/**
+	 * Redirect route to another route
+	 *
+	 * @param array @route
+	 */
 	private function to($route)
 	{
 		header('Location: ' . $route['callback']);
