@@ -15,11 +15,11 @@ class Route
 	static public $routes = [];
 
 	/**
-	 * Application
+	 * Controller settings
 	 *
-	 * @var $application
+	 * @var $controller
 	 */
-	static public $application;
+	static public $controller;
 
 	/**
 	 * Route arguments
@@ -27,6 +27,34 @@ class Route
 	 * @var $group
 	 */
 	static public $group = [];
+
+	/**
+	 * View event
+	 *
+	 * @var $viewEvent
+	 */
+	static public $viewEvent;
+
+	/**
+	 * Fail event
+	 *
+	 * @var $failEvent
+	 */
+	static public $failEvent;
+
+	/**
+	 * Fail event
+	 *
+	 * @var $beforeEvent
+	 */
+	static public $beforeEvent;
+
+	/**
+	 * Fail event
+	 *
+	 * @var $afterEvent
+	 */
+	static public $afterEvent;
 
 	/**
 	 * Current route
@@ -100,18 +128,12 @@ class Route
 
 	/**
 	 * Throw new Exception
+	 *
+	 * @param string $message
 	 */
 	private function exception($message)
 	{
 		throw new Exception($message);
-	}
-
-	/**
-	 * Set application provider
-	 */
-	public static function provider($app)
-	{
-		self::$application = $app;
 	}
 
 	/**
@@ -301,9 +323,10 @@ class Route
 	 */
 	public static function dispatch($name = null)
 	{
-		$app = self::$application;
 		$router = new Route;
 		$routes = self::$routes;
+
+		$router->checkEvents();
 
 		foreach($routes as $route) {
 			if ($name != null && $route['name'] == $name) {
@@ -311,20 +334,19 @@ class Route
 				$route['variables'] = [];
 
 				if ($route['redirect']) {
-					$router->to($route);
-					return;
+					return $router->to($route);;
 				}
 				else if ($route['view']) {
-					if (method_exists($app, 'view')) {
-						$app->view($route['callback'], []);
+					if (is_callable(self::$viewEvent)) {
+						$router->callView(self::$viewEvent, []);
 					}
 					else {
-						call_user_func_array([$app, 'fail'], [$router->isAjax(), 405]);
+						$router->failed($routes, 405);
 					}
 					return;
 				}
 
-				return $router->handle($app, (object)$route, []);
+				return $router->handle((object)$route, []);
 			}
 
 			if (in_array($router->method(), $route['method'])) {
@@ -335,28 +357,63 @@ class Route
 					$route['variables'] = $matches;
 
 					if ($route['redirect']) {
-						$router->to($route);
-						return;
+						return $router->to($route);
 					}
 					else if ($route['view']) {
-						if (method_exists($app, 'view')) {
-							$app->view($route['callback'], is_bool($matches) ? [] : $matches);
+						if (is_callable(self::$viewEvent)) {
+							$router->callView(self::$viewEvent, $matches);
 						}
 						else {
-							call_user_func_array([$app, 'fail'], [$router->isAjax(), 405]);
+							$router->failed($routes, 405);
 						}
 						return;
 					}
 
-					return $router->handle($app, (object)$route, is_bool($matches) ? [] : $matches);
+					return $router->handle((object)$route, is_bool($matches) ? [] : $matches);
 				}
 			}
 		}
 
-		$code = $router->isNotAllowed($router, $routes) ? 405 : 404;
-
-		call_user_func_array([$app, 'fail'], [$router->isAjax(), $code]);
+		$router->failed($routes);
 		return false;
+	}
+
+	private function checkEvents()
+	{
+		if (!is_callable(self::$failEvent)) {
+			$this->exception('Swish "fail" event is unhandled.');
+		}
+
+		if (!is_callable(self::$beforeEvent)) {
+			$this->exception('Swish "before" event is unhandled.');
+		}
+
+		if (!is_callable(self::$afterEvent)) {
+			$this->exception('Swish "after" event is unhandled.');
+		}
+	}
+
+	private function failed($routes, $code = null)
+	{
+		$code = $code == null ? ($this->isNotAllowed($this, $routes) ? 405 : 404) : $code;
+
+		header('HTTP/1.1 '.$code);
+		return call_user_func_array(self::$failEvent, [$this->isAjax(), $code]);
+	}
+
+	private function callView($event, $matches)
+	{
+		return call_user_func_array($event, is_bool($matches) ? [self::$current['callback'], []] : [self::$current['callback'], [$matches]]);
+	}
+
+	private function callBefore($route, $callback)
+	{
+		return call_user_func_array(self::$beforeEvent, [$route, $callback]);
+	}
+
+	private function callAfter($route, $callback)
+	{
+		return call_user_func_array(self::$afterEvent, [$route, $callback]);
 	}
 
 	/**
@@ -386,6 +443,20 @@ class Route
 	}
 
 	/**
+	 * Assign events
+	 *
+	 * @param string  $name
+	 * @param closure $callback
+	 */
+	public static function assignEvent($name, Closure $callback)
+	{
+		if ($name == 'view') self::$viewEvent = $callback;
+		if ($name == 'fail') self::$failEvent = $callback;
+		if ($name == 'before') self::$beforeEvent = $callback;
+		if ($name == 'after') self::$afterEvent = $callback;
+	}
+
+	/**
 	 * Execute route
 	 *
 	 * @param  object  $app
@@ -393,10 +464,10 @@ class Route
 	 * @param  array   $matches
 	 * @return boolean
 	 */
-	private function handle($app, $route, $matches)
+	private function handle($route, $matches)
 	{
 		if (is_string($route->callback)) {
-			$controller = $app->controller['namespace'] . '\\' . explode('@', $route->callback)[0];
+			$controller = self::$controller['namespace'] . '\\' . explode('@', $route->callback)[0];
 
 			if (!class_exists($controller)) $this->exception(
 				"Class '$controller' not found."
@@ -409,7 +480,7 @@ class Route
 				"Method $controller::$method() does not exist"
 			);
 
-			$response = $app->before($route, [$class, $method]);
+			$response = $this->callBefore($route, [$class, $method]);
 			if ($response != [] || $response !== false) {
 				$matches = $response;
 			}
@@ -419,12 +490,12 @@ class Route
 				is_array($matches) ? $matches : []
 			);
 
-			$app->after($route, [$class, $method]);
+			$this->callAfter($route, [$class, $method]);
 
 			return true;
 		}
 
-		$response = $app->before($route, $route->callback);
+		$response = $this->callBefore($route, $route->callback);
 
 		if ($response != [] || $response !== false) {
 			$matches = $response;
@@ -435,7 +506,7 @@ class Route
 			is_array($matches) ? $matches : []
 		);
 
-		$app->after($route, $route->callback);
+		$this->callAfter($route, $route->callback);
 
 		return true;
 	}
