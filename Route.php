@@ -15,6 +15,13 @@ class Route
 	static public $routes = [];
 
 	/**
+	 * Route names
+	 *
+	 * @var $names
+	 */
+	static public $names = [];
+
+	/**
 	 * Controller settings
 	 *
 	 * @var $controller
@@ -200,10 +207,14 @@ class Route
 	 * @param  string $name
 	 * @return object $this
 	 */
-	public function name($name)
+	public function name(string $name)
 	{
+		if (in_array($name, self::$names)) return $this->exception('A route with the name "' . $name . '" has already been registered.');
+
 		$this->name = $name;
 		self::$routes[$this->key]['name'] = $name;
+
+		self::$names[] = $name;
 		return $this;
 	}
 
@@ -541,7 +552,7 @@ class Route
 		$length = strlen($this->uri());
 
 		return str_replace(
-			$this->query(),'',
+			$this->url_query(),'',
 			substr($this->uri(), -1) == '/' ? substr($this->uri(), 0, $length - 1) : $this->uri()
 		);
 	}
@@ -561,7 +572,7 @@ class Route
 	 *
 	 * @return string $query
 	 */
-	private function query()
+	private function url_query()
 	{
 		if (isset($_SERVER['QUERY_STRING'])) {
 			$this->query = '?' . $_SERVER['QUERY_STRING'];
