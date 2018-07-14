@@ -543,6 +543,23 @@ class Route
 	}
 
 	/**
+	 * Get query string
+	 *
+	 * @param  string $getter
+	 * @return string
+	 */
+	public static function query($getter = null)
+	{
+		if ($getter != null && isset($_GET[$getter])) {
+			return $_GET[$getter];
+		}
+
+		if (isset($_SERVER['QUERY_STRING'])) {
+			return $_SERVER['QUERY_STRING'];
+		}
+	}
+
+	/**
 	 * Return current url without query string
 	 *
 	 * @return string
