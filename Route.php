@@ -92,6 +92,13 @@ class Route
 	private $redirect;
 
 	/**
+	 * Route to view
+	 *
+	 * @var $view
+	 */
+	private $view;
+
+	/**
 	 * Set application provider
 	 */
 	public static function provider($app)
@@ -107,7 +114,7 @@ class Route
 	 * @param
 	 * @return object  $route
 	 */
-	public static function add($method, $pattern, $callback, $redirect = false)
+	public static function add($method, $pattern, $callback, $redirect = false, $view = false)
 	{
 		$route = new Route;
 
@@ -138,6 +145,7 @@ class Route
 		$route->pattern = $globalPattern . $pattern;
 		$route->callback = is_string($callback) ? $globalNamespace . $callback : $callback;
 		$route->redirect = $redirect;
+		$route->view = $view;
 
 		self::$routes[] = [
 			'id' => $route->id,
@@ -146,7 +154,8 @@ class Route
 			'pattern' => $route->pattern,
 			'callback' => is_string($callback) ? $globalNamespace . $callback : $callback,
 			'method' => $method,
-			'redirect' => $redirect
+			'redirect' => $redirect,
+			'view' => $view
 		];
 
 		end(self::$routes);
@@ -271,6 +280,11 @@ class Route
 		return self::add(['GET', 'POST', 'PUT', 'DELETE'], $pattern, $redirect, true);
 	}
 
+	public static function view($pattern, $path)
+	{
+		return self::add(['GET'], $pattern, $path, false, true);
+	}
+
 	/**
 	 * Find matching route for the current url
 	 *
@@ -292,6 +306,15 @@ class Route
 					$router->to($route);
 					return;
 				}
+				else if ($route['view']) {
+					if (method_exists($app, 'view')) {
+						$app->view($route['callback'], []);
+					}
+					else {
+						call_user_func_array([$app, 'fail'], [$router->isAjax(), 405]);
+					}
+					return;
+				}
 
 				return $router->handle($app, (object)$route, []);
 			}
@@ -307,8 +330,17 @@ class Route
 						$router->to($route);
 						return;
 					}
+					else if ($route['view']) {
+						if (method_exists($app, 'view')) {
+							$app->view($route['callback'], is_bool($matches) ? [] : $matches);
+						}
+						else {
+							call_user_func_array([$app, 'fail'], [$router->isAjax(), 405]);
+						}
+						return;
+					}
 
-					return $router->handle($app, (object)$route, $matches);
+					return $router->handle($app, (object)$route, is_bool($matches) ? [] : $matches);
 				}
 			}
 		}
