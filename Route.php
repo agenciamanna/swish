@@ -651,6 +651,11 @@ class Route
 	{
 		$pattern = substr($pattern, -1) == '/' ? substr($pattern, 0, strlen($pattern) - 1) : $pattern ;
 
+		// match wildcard route
+		if ($pattern == '/*') {
+			return true;
+		}
+
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
 		$pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
 
