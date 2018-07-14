@@ -389,6 +389,11 @@ class Route
 		return false;
 	}
 
+	/**
+	 * Check if all events have been set.
+	 *
+	 * @return void
+	 */
 	private function checkEvents()
 	{
 		if (!is_callable(self::$failEvent)) {
@@ -404,6 +409,13 @@ class Route
 		}
 	}
 
+	/**
+	 * Handle fail event.
+	 *
+	 * @param  array   $routes
+	 * @param  integer $code
+	 * @return void
+	 */
 	private function failed($routes, $code = null)
 	{
 		$code = $code == null ? ($this->isNotAllowed($routes) ? 405 : 404) : $code;
@@ -412,16 +424,37 @@ class Route
 		return call_user_func_array(self::$failEvent, [$this->isAjax(), $code]);
 	}
 
+	/**
+	 * Handle view event.
+	 *
+	 * @param  closure $event
+	 * @param  array   $matches
+	 * @return void
+	 */
 	private function callView($event, $matches)
 	{
 		return call_user_func_array($event, is_bool($matches) ? [self::$current['callback'], []] : [self::$current['callback'], [$matches]]);
 	}
 
+	/**
+	 * Handle before event.
+	 *
+	 * @param  route   $route
+	 * @param  closure $callback
+	 * @return void
+	 */
 	private function callBefore($route, $callback)
 	{
 		return call_user_func_array(self::$beforeEvent, [$route, $callback]);
 	}
 
+	/**
+	 * Handle after event.
+	 *
+	 * @param  route   $route
+	 * @param  closure $callback
+	 * @return void
+	 */
 	private function callAfter($route, $callback)
 	{
 		return call_user_func_array(self::$afterEvent, [$route, $callback]);
