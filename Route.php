@@ -22,6 +22,20 @@ class Route
 	static public $application;
 
 	/**
+	 * Route arguments
+	 *
+	 * @var $group
+	 */
+	static public $group = [];
+
+	/**
+	 * Current route
+	 *
+	 * @var $current
+	 */
+	static private $current;
+
+	/**
 	 * Route id
 	 *
 	 * @var $id
