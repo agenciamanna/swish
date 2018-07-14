@@ -99,6 +99,14 @@ class Route
 	private $view;
 
 	/**
+	 * Throw new Exception
+	 */
+	private function exception($message)
+	{
+		throw new Exception($message);
+	}
+
+	/**
 	 * Set application provider
 	 */
 	public static function provider($app)
