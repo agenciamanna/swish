@@ -256,7 +256,7 @@ class Route
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function get($pattern, $callback)
+	public static function get(string $pattern, $callback)
 	{
 		return self::add(['GET'], $pattern, $callback);
 	}
@@ -268,7 +268,7 @@ class Route
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function post($pattern, $callback)
+	public static function post(string $pattern, $callback)
 	{
 		return self::add(['POST'], $pattern, $callback);
 	}
@@ -280,7 +280,7 @@ class Route
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function put($pattern, $callback)
+	public static function put(string $pattern, $callback)
 	{
 		return self::add(['PUT'], $pattern, $callback);
 	}
@@ -292,7 +292,7 @@ class Route
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function delete($pattern, $callback)
+	public static function delete(string $pattern, $callback)
 	{
 		return self::add(['DELETE'], $pattern, $callback);
 	}
@@ -316,12 +316,12 @@ class Route
 	 * @param  string $redirect
 	 * @return object
 	 */
-	public static function redirect($pattern, $redirect)
+	public static function redirect(string $pattern, string $redirect)
 	{
 		return self::add(['GET', 'POST', 'PUT', 'DELETE'], $pattern, $redirect, true);
 	}
 
-	public static function view($pattern, $path)
+	public static function view(string $pattern, string $path)
 	{
 		return self::add(['GET'], $pattern, $path, false, true);
 	}
@@ -332,7 +332,7 @@ class Route
 	 * @param  string $name
 	 * @return
 	 */
-	public static function dispatch($name = null)
+	public static function dispatch(string $name = null)
 	{
 		$router = new Route;
 		$routes = self::$routes;
