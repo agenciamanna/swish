@@ -85,6 +85,13 @@ class Route
 	private $middleware = [];
 
 	/**
+	 * Route can redirect
+	 *
+	 * @var $redirect
+	 */
+	private $redirect;
+
+	/**
 	 * Set application provider
 	 */
 	public static function provider($app)
@@ -100,7 +107,7 @@ class Route
 	 * @param
 	 * @return object  $route
 	 */
-	public static function add($method, $pattern, $callback)
+	public static function add($method, $pattern, $callback, $redirect = false)
 	{
 		$route = new Route;
 
@@ -130,6 +137,7 @@ class Route
 		$route->id = uniqid('route_');
 		$route->pattern = $globalPattern . $pattern;
 		$route->callback = is_string($callback) ? $globalNamespace . $callback : $callback;
+		$route->redirect = $redirect;
 
 		self::$routes[] = [
 			'id' => $route->id,
@@ -137,7 +145,8 @@ class Route
 			'middleware' => [],
 			'pattern' => $route->pattern,
 			'callback' => is_string($callback) ? $globalNamespace . $callback : $callback,
-			'method' => $method
+			'method' => $method,
+			'redirect' => $redirect
 		];
 
 		end(self::$routes);
@@ -250,6 +259,11 @@ class Route
 		return self::add($methods, $pattern, $callback);
 	}
 
+	public static function redirect($pattern, $redirect)
+	{
+		return self::add(['GET', 'POST', 'PUT', 'DELETE'], $pattern, $redirect, true);
+	}
+
 	/**
 	 * Find matching route for the current url
 	 *
@@ -267,6 +281,11 @@ class Route
 				self::$current = $route;
 				$route['variables'] = [];
 
+				if ($route['redirect']) {
+					$router->to($route);
+					return;
+				}
+
 				return $router->handle($app, (object)$route, []);
 			}
 
@@ -276,6 +295,11 @@ class Route
 				if ($matches) {
 					self::$current = $route;
 					$route['variables'] = $matches;
+
+					if ($route['redirect']) {
+						$router->to($route);
+						return;
+					}
 
 					return $router->handle($app, (object)$route, $matches);
 				}
@@ -302,6 +326,11 @@ class Route
 				return true;
 			}
 		}
+	}
+
+	private function to($route)
+	{
+		header('Location: ' . $route['callback']);
 	}
 
 	/**
