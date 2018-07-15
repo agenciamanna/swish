@@ -653,7 +653,7 @@ class Route
 
 		// match wildcard route
 		if ($pattern == '/*') {
-			return true;
+			return $this->clean(explode('/', $this->url()), true);
 		}
 
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
@@ -673,15 +673,29 @@ class Route
 		}
 
 		if ($matches) {
-			return array_intersect_key(
-				$matches,
-				array_flip(
-					array_filter(array_keys(
-						$matches),
-						'is_string'
-					)
-				)
-			);;
+			return $this->clean($matches);
 		}
+	}
+
+	private function clean(array $matches, bool $values = false)
+	{
+		if ($values) {
+			foreach($matches as $k=>$e) {
+				if ($matches[$k] == '') {
+					unset($matches[$k]);
+				}
+			}
+			return $matches;
+		}
+
+		return array_intersect_key(
+			$matches,
+			array_flip(
+				array_filter(array_keys(
+					$matches),
+					'is_string'
+				)
+			)
+		);
 	}
 }
