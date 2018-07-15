@@ -653,7 +653,12 @@ class Route
 
 		// match wildcard route
 		if ($pattern == '/*') {
-			return $this->clean(explode('/', $this->url()), true);
+			$matches = $this->clean(explode('/', $this->url()), true);
+			if (count($matches) == 0) {
+				return true;
+			}
+
+			return $matches;
 		}
 
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
