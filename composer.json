@@ -1,5 +1,5 @@
 {
-  "name": "modulusphp/swish",
+  "name": "AtlantisPHP/swish",
   "description": "Simple and easy to use PHP routing system",
   "version": "0.1",
   "license": "MIT",
@@ -12,7 +12,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "ModulusPHP\\Swish\\": ""
+      "AtlantisPHP\\Swish\\": ""
     }
   },
   "minimum-stability": "stable"

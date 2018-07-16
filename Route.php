@@ -1,6 +1,6 @@
 <?php
 
-namespace ModulusPHP\Swish;
+namespace AtlantisPHP\Swish;
 
 use Closure;
 use Exception;
@@ -13,6 +13,13 @@ class Route
 	 * @var $routes
 	 */
 	static public $routes = [];
+
+	/**
+	 * Application object routes
+	 *
+	 * @var $objects
+	 */
+	static public $objects = [];
 
 	/**
 	 * Route names
@@ -134,6 +141,20 @@ class Route
 	private $view;
 
 	/**
+	 * Route file
+	 *
+	 * @var $file
+	 */
+	private $file;
+
+	/**
+	 * Required variables
+	 *
+	 * @var $required
+	 */
+	private $required;
+
+	/**
 	 * Throw new Exception
 	 *
 	 * @param string $message
@@ -157,6 +178,7 @@ class Route
 
 		$globalMiddleware = [];
 		$globalPattern = $globalNamespace = '';
+		$file = isset(debug_backtrace()[1]['file']) ? basename(debug_backtrace()[1]['file']) : null;
 
 		if (isset(debug_backtrace()[2]) && debug_backtrace()[2]['function'] == '{closure}') {
 			if (isset(self::$group['middleware'])) {
@@ -183,22 +205,40 @@ class Route
 		$route->callback = is_string($callback) ? $globalNamespace . $callback : $callback;
 		$route->redirect = $redirect;
 		$route->view = $view;
+		$route->file = $file;
+		$route->required = $route->countVaribales($pattern);
 
 		self::$routes[] = [
 			'id' => $route->id,
 			'name' => '',
 			'middleware' => [],
 			'pattern' => $route->pattern,
-			'callback' => is_string($callback) ? $globalNamespace . $callback : $callback,
+			'callback' => $route->callback,
 			'method' => $method,
-			'redirect' => $redirect,
-			'view' => $view
+			'redirect' => $route->redirect,
+			'view' => $route->view,
+			'file' => $route->file,
+			'required' =>$route->required
 		];
 
 		end(self::$routes);
 		$route->key = key(self::$routes);
 
+		self::$objects[] = array('id' => $route->id, 'route' => $route);
+
 		return $route;
+	}
+
+	/**
+	 * Count required variables
+	 *
+	 * @param  string  $pattern
+	 * @return integer $c
+	 */
+	private function countVaribales(string $pattern)
+	{
+		preg_match_all("/\{(.*?)\}/", $pattern, $c);
+		return count($c[0]);
 	}
 
 	/**
@@ -234,6 +274,16 @@ class Route
 		}
 
 		return $this;
+	}
+
+	public function variables(array $variables)
+	{
+		if (count($variables) != $this->required) return $this->exception(
+			'Expected ' . $this->required . ' arguments, ' . count($variables) . ' passed.'
+		);
+
+		self::$routes[$this->key]['variables'] = $variables;
+		return $this->singleDispatch($this->name, self::$routes[$this->key]);
 	}
 
 	/**
@@ -304,7 +354,7 @@ class Route
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function options(array $methods, $pattern, $callback)
+	public static function options(array $methods, string $pattern, $callback)
 	{
 		return self::add($methods, $pattern, $callback);
 	}
@@ -339,33 +389,17 @@ class Route
 
 		$router->checkEvents();
 
+		if ($name != null) {
+			return $router->singleDispatch($name);
+		}
+
 		foreach($routes as $route) {
-			if ($name != null && $route['name'] == $name) {
-				self::$current = $route;
-				$route['variables'] = [];
-
-				if ($route['redirect']) {
-					return $router->to($route);;
-				}
-				else if ($route['view']) {
-					if (is_callable(self::$viewEvent)) {
-						$router->callView(self::$viewEvent, []);
-					}
-					else {
-						$router->failed($routes, 405);
-					}
-					return;
-				}
-
-				return $router->handle((object)$route, []);
-			}
-
 			if (in_array($router->method(), $route['method'])) {
 				$matches = $router->match($route['pattern']);
 
 				if ($matches) {
 					self::$current = $route;
-					$route['variables'] = $matches;
+					$route['variables'] = is_bool($matches) ? [] : $matches;
 
 					if ($route['redirect']) {
 						return $router->to($route);
@@ -386,6 +420,53 @@ class Route
 		}
 
 		$router->failed($routes);
+		return false;
+	}
+
+	/**
+	 * Dispatch specified route.
+	 *
+	 * @param string $name
+	 * @param array  $singleRoute
+	 * @return
+	 */
+	private function singleDispatch(string $name, $singleRoute = null)
+	{
+		$routes = self::$routes;
+
+		if ($singleRoute) {
+			self::$current = $singleRoute;
+			if ($singleRoute['redirect']) {
+				return $this->to($singleRoute);
+			}
+			else if ($singleRoute['view']) {
+				if (is_callable(self::$viewEvent)) {
+					$this->callView(self::$viewEvent, isset($singleRoute['variables']) ? $singleRoute['variables'] : []);
+				}
+				else {
+					$this->failed($routes, 405);
+				}
+				return;
+			}
+
+			return $this->handle((object)$singleRoute, isset($singleRoute['variables']) ? $singleRoute['variables'] : []);
+		}
+
+		foreach($routes as $route) {
+			if ($route['name'] == $name) {
+				if ($route['required'] > 0) {
+					foreach(self::$objects as $object) {
+						if ($object['id'] == $route['id']) {
+							return $object['route'];
+						}
+					}
+				}
+
+				return $this->singleDispatch($name, $route);
+			}
+		}
+
+		$this->failed($routes);
 		return false;
 	}
 
@@ -484,6 +565,7 @@ class Route
 	private function to($route)
 	{
 		header('Location: ' . $route['callback']);
+		return false;
 	}
 
 	/**
@@ -682,6 +764,13 @@ class Route
 		}
 	}
 
+	/**
+	 * Clean matches
+	 *
+	 * @param  array   $matches
+	 * @param  boolean $values
+	 * @return
+	 */
 	private function clean(array $matches, bool $values = false)
 	{
 		if ($values) {

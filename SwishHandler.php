@@ -1,6 +1,6 @@
 <?php
 
-namespace ModulusPHP\Swish;
+namespace AtlantisPHP\Swish;
 
 use Closure;
 
