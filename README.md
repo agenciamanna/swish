@@ -1,5 +1,10 @@
 # Swish Router
 
+## Installation
+```
+composer require atlantisphp/swish
+```
+
 ## Introduction
 Swish Router is a simple and easy to use Routing System for PHP. You can implement it on any PHP project.
 
@@ -49,7 +54,7 @@ AtlantisPHP\Swish\SwishHandler::before(function($route, $callback) {
 });
 
 /**
- * This method gets executed afer a route is handled.
+ * This method gets executed after a route is handled.
  * Used for tracking.
  *
  * @param route $route
@@ -82,4 +87,32 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 
 RewriteRule ^(.+)$ index.php [QSA,L]
+```
+
+### Available Router Methods
+The router allows you to register routes that respond to any HTTP verb:
+
+```
+Route::get($uri, $callback);
+Route::post($uri, $callback);
+Route::put($uri, $callback);
+Route::delete($uri, $callback);
+Route::options($verbs, $uri, $callback);
+Route::redirect($uri, $redirect);
+Route::view($uri, $view); // uses the get verb
+```
+
+## Named Routes
+Named routes allow the convenient generation of URLs or redirects for specific routes. You may specify a name for a route by chaining the name method onto the route definition:
+
+```
+Route::get('/help/about-us', function () {
+  //
+})->name('about');
+```
+
+You may also specify route names for controller actions:
+
+```
+Route::get('user/profile', 'UserProfileController@show')->name('profile');
 ```
