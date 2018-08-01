@@ -114,5 +114,5 @@ Route::get('/help/about-us', function () {
 You may also specify route names for controller actions:
 
 ```
-Route::get('user/profile', 'UserProfileController@show')->name('profile');
+Route::get('/user/profile', 'UserProfileController@show')->name('profile');
 ```
