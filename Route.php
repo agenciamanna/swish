@@ -75,7 +75,7 @@ class Route
 	 *
 	 * @var $current
 	 */
-	static private $current;
+	static public $current;
 
 	/**
 	 * Request query
@@ -206,7 +206,7 @@ class Route
 		$route->redirect = $redirect;
 		$route->view = $view;
 		$route->file = $file;
-		$route->required = $route->countVaribales($pattern);
+    $route->required = $route->countVaribales($pattern);
 
 		self::$routes[] = [
 			'id' => $route->id,
@@ -276,6 +276,12 @@ class Route
 		return $this;
 	}
 
+	/**
+	 * Set route variables
+	 *
+	 * @param array $variables
+	 * @return void
+	 */
 	public function variables(array $variables)
 	{
 		if (count($variables) != $this->required) return $this->exception(
@@ -283,7 +289,7 @@ class Route
 		);
 
 		self::$routes[$this->key]['variables'] = $variables;
-		return $this->singleDispatch($this->name, self::$routes[$this->key]);
+		return $this;
 	}
 
 	/**
@@ -348,15 +354,63 @@ class Route
 	}
 
 	/**
+	 * Add a new patch route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function patch(string $pattern, $callback)
+	{
+		return self::add(['PATCH'], $pattern, $callback);
+	}
+
+	/**
+	 * Add a new head route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function head(string $pattern, $callback)
+	{
+		return self::add(['HEAD'], $pattern, $callback);
+	}
+
+		/**
 	 * Add a new options route
 	 *
 	 * @param  string $pattern
 	 * @param  string $callback
 	 * @return object
 	 */
-	public static function options(array $methods, string $pattern, $callback)
+	public static function options(string $pattern, $callback)
+	{
+		return self::add(['OPTIONS'], $pattern, $callback);
+	}
+
+	/**
+	 * Add a new if route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function if(array $methods, string $pattern, $callback)
 	{
 		return self::add($methods, $pattern, $callback);
+	}
+
+	/**
+	 * Add a new "any" route
+	 *
+	 * @param  string $pattern
+	 * @param  string $callback
+	 * @return object
+	 */
+	public static function any(string $pattern, $callback)
+	{
+		return self::add(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], $pattern, $callback);
 	}
 
 	/**
@@ -368,9 +422,16 @@ class Route
 	 */
 	public static function redirect(string $pattern, string $redirect)
 	{
-		return self::add(['GET', 'POST', 'PUT', 'DELETE'], $pattern, $redirect, true);
+		return self::add(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], $pattern, $redirect, true);
 	}
 
+	/**
+	 * Add a new get route (view)
+	 *
+	 * @param string $pattern
+	 * @param string $path
+	 * @return object
+	 */
 	public static function view(string $pattern, string $path)
 	{
 		return self::add(['GET'], $pattern, $path, false, true);
@@ -382,7 +443,7 @@ class Route
 	 * @param  string $name
 	 * @return
 	 */
-	public static function dispatch(string $name = null)
+	public static function dispatch(?string $name = null, ?array $variables = null)
 	{
 		$router = new Route;
 		$routes = self::$routes;
@@ -390,12 +451,18 @@ class Route
 		$router->checkEvents();
 
 		if ($name != null) {
-			return $router->singleDispatch($name);
+			return $router->singleDispatch($name, null, $variables);
 		}
 
 		foreach($routes as $route) {
 			if (in_array($router->method(), $route['method'])) {
 				$matches = $router->match($route['pattern']);
+
+				if (isset($route['variables']) && $route['variables'] !== null) {
+					foreach ($route['variables'] as $key => $value) {
+						$matches[$key] = $value;
+					}
+				}
 
 				if ($matches) {
 					self::$current = $route;
@@ -430,7 +497,7 @@ class Route
 	 * @param array  $singleRoute
 	 * @return
 	 */
-	private function singleDispatch(string $name, $singleRoute = null)
+	private function singleDispatch(string $name, $singleRoute = null, ?array $variables = null)
 	{
 		$routes = self::$routes;
 
@@ -454,12 +521,8 @@ class Route
 
 		foreach($routes as $route) {
 			if ($route['name'] == $name) {
-				if ($route['required'] > 0) {
-					foreach(self::$objects as $object) {
-						if ($object['id'] == $route['id']) {
-							return $object['route'];
-						}
-					}
+				if ($variables != null) {
+					$route['variables'] = $variables;
 				}
 
 				return $this->singleDispatch($name, $route);
