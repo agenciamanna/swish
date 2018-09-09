@@ -78,8 +78,6 @@ AtlantisPHP\Swish\Route::dispatch();
 *htaccess file stored in /public*
 
 ```
-# .htaccess file stored in "/public"
-
 Options -Multiviews -Indexes
 RewriteEngine On
 
@@ -93,13 +91,29 @@ RewriteRule ^(.+)$ index.php [QSA,L]
 The router allows you to register routes that respond to any HTTP verb:
 
 ```
-Route::get($uri, $callback);
-Route::post($uri, $callback);
-Route::put($uri, $callback);
-Route::delete($uri, $callback);
-Route::options($verbs, $uri, $callback);
-Route::redirect($uri, $redirect);
-Route::view($uri, $view); // uses the get verb
+Route::get(string $uri, $callback);
+Route::poststring ($uri, $callback);
+Route::put(string $uri, $callback);
+Route::head(string $uri, $callback);
+Route::delete(string $uri, $callback);
+Route::patch(string $uri, $callback);
+Route::options(string $uri, $callback);
+Route::any(string $uri, $callback);
+Route::if(array $verbs, string $uri, $callback);
+Route::redirect(string $uri, string $redirect);
+Route::view(string $uri, string $view); // uses the get verb
+```
+
+A $callback can either be a closure or a controller action.
+
+Here's what the syntax looks like:
+
+```
+Route::get('/', function() {
+  view('home');
+});
+
+Route::if(['GET', 'POST'], '/profile/{id}', 'AccountController@showProfile');
 ```
 
 ## Named Routes
@@ -115,4 +129,58 @@ You may also specify route names for controller actions:
 
 ```
 Route::get('/user/profile', 'UserProfileController@show')->name('profile');
+```
+
+## Custom variables
+Custom variables are variables you can add to a route or expected variables you can replace.
+
+Here's how you can add variables to a route.
+
+```
+Route::get('/post/{id}', 'PostController@show')->variables([
+  'id' => 2
+]);
+```
+
+## View Routes
+To use the `Route::view` action, you must connect it to the `Medusa` package.
+
+Here's how you can do that:
+
+First require the medusa package:
+
+```
+composer require atlantisphp/medusa
+```
+
+Then configure `Medusa` to work with `Swish`.
+
+*index.php file stored in `/public` directory*
+
+```
+<?php
+
+require_once __DIR__.'/../vendor/autoload.php';
+
+use AtlantisPHP\Swish\SwishHandler;
+use AtlantisPHP\Medusa\Template as Medusa;
+
+$medusa = new Medusa();
+
+$medusa->setCacheDirectory('/../storage/cache');
+$medusa->setViewsDirectory('/../views');
+$medusa->setViewsExtension('.medusa.php');
+
+SwishHandler::view(function($path, $variables) use ($medusa) {
+  $medusa->make($path, isset($variables[0]) ? $variables[0] : []);
+});
+```
+
+This should now work:
+
+```
+Route::view('/', 'home')->name('home');
+
+// load router
+Route::dispatch();
 ```
