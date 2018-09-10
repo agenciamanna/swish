@@ -75,7 +75,7 @@ class Route
 	 *
 	 * @var $current
 	 */
-	static public $current;
+	static private $current;
 
 	/**
 	 * Request query
