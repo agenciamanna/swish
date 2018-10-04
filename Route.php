@@ -812,7 +812,11 @@ class Route
 			$url = substr($this->url(), 0, strlen($this->url()) - 1);
 		} else {
 			$url = $this->url();
-		}
+    }
+    
+    if (substr($url, strlen($url) - 1, 1) == '/') {
+      $url = substr($url, 0, strlen($url) - 1);
+    }
 
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
 		$pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
