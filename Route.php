@@ -806,19 +806,27 @@ class Route
 			return $matches;
 		}
 
+		$url = substr($this->url(), strlen($this->url()) - 1, 1);
+
+		if ($url == '?') {
+			$url = substr($this->url(), 0, strlen($this->url()) - 1);
+		} else {
+			$url = $this->url();
+		}
+
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
 		$pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
 
 		preg_match(
 			$pattern_regex,
-			trim($this->url(), "/"),
+			trim($url, "/"),
 			$matches
 		);
 
 		if (count($matches) == 1 && $pattern == '') {
 			return true;
 		}
-		else if ($pattern == $this->url()) {
+		else if ($pattern == $url) {
 			return true;
 		}
 
