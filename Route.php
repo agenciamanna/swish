@@ -180,23 +180,31 @@ class Route
 		$globalPattern = $globalNamespace = '';
 		$file = isset(debug_backtrace()[1]['file']) ? basename(debug_backtrace()[1]['file']) : null;
 
-		if (isset(debug_backtrace()[2]) && debug_backtrace()[2]['function'] == '{closure}') {
-			if (isset(self::$group['middleware'])) {
-				array_merge(
-					$globalMiddleware,
-					self::$group['middleware']
-				);
-			}
+    $globalPattern = '';
 
-			if (isset(self::$group['prefix'])) {
-				$globalPattern = substr(self::$group['prefix'], 0, 1) === "/" ?
-										self::$group['prefix'] : '/' . self::$group['prefix'];
-			}
+    $stack = array_reverse(debug_backtrace());
 
-			if (isset(self::$group['namespace'])) {
-				$globalNamespace = self::$group['namespace'] . '\\';
-			}
-		};
+    foreach($stack as $trace) {
+      if (isset($trace['file']) && $trace['function'] == 'group' && is_countable($trace['args'])) {
+        $args = $trace['args'][0];
+
+        if (isset($args['middleware'])) {
+          $globalMiddleware = array_merge(
+            $globalMiddleware,
+            $args['middleware']
+          );
+        }
+
+        if (isset($args['prefix'])) {
+          $globalPattern .= substr($args['prefix'], 0, 1) === "/" ?
+                      $args['prefix'] : '/' . $args['prefix'];
+        }
+
+        if (isset($args['namespace'])) {
+          $globalNamespace .= $args['namespace'] . '\\';
+        }
+      }
+    }
 
 		$pattern = substr($pattern, 0, 1) == "/" ? $pattern : '/' . $pattern;
 
@@ -207,11 +215,12 @@ class Route
 		$route->view = $view;
 		$route->file = $file;
     $route->required = $route->countVaribales($pattern);
+    $route->middleware = $globalMiddleware;
 
 		self::$routes[] = [
 			'id' => $route->id,
 			'name' => '',
-			'middleware' => [],
+			'middleware' => $route->middleware,
 			'pattern' => $route->pattern,
 			'callback' => $route->callback,
 			'method' => $method,
