@@ -273,14 +273,10 @@ class Route
 	 * @param  string $name
 	 * @return object $this
 	 */
-	public function middleware(string $middleware)
+	public function middleware()
 	{
-		$middlewares = explode(':', $middleware);
-
-		foreach($middlewares as $middleware) {
-			$this->middleware[] = $middleware;
-			self::$routes[$this->key]['middleware'][] = $middleware;
-		}
+    $this->middleware = array_merge($this->middleware, func_get_args());
+    self::$routes[$this->key]['middleware'] = array_merge(self::$routes[$this->key]['middleware'], func_get_args());
 
 		return $this;
 	}
@@ -665,7 +661,9 @@ class Route
 	private function handle($route, $matches)
 	{
 		if (is_string($route->callback)) {
-			$controller = self::$controller['namespace'] . '\\' . explode('@', $route->callback)[0];
+      $fullyQualified = explode('@', $route->callback)[0];
+
+      $controller = substr($fullyQualified, 0, 1) == '\\' ? $fullyQualified : self::$controller['namespace'] . '\\' . explode('@', $route->callback)[0];
 
 			if (!class_exists($controller)) $this->exception(
 				"Class '$controller' not found."
