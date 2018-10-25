@@ -751,12 +751,19 @@ class Route
 	 */
 	private function url()
 	{
+    $root = isset($_SERVER["SCRIPT_NAME"]) ? $_SERVER['SCRIPT_NAME'] : '';
+    $dir = pathinfo($root)['dirname'];
+
 		$length = strlen($this->uri());
 
-		return str_replace(
+		$url = str_replace(
 			$this->url_query(),'',
 			substr($this->uri(), -1) == '/' ? substr($this->uri(), 0, $length - 1) : $this->uri()
-		);
+    );
+
+    if (substr($dir, -1) == '/') return $url;
+
+    return substr($url, strlen($dir));
 	}
 
 	/**
@@ -820,7 +827,7 @@ class Route
 		} else {
 			$url = $this->url();
     }
-    
+
     if (substr($url, strlen($url) - 1, 1) == '/') {
       $url = substr($url, 0, strlen($url) - 1);
     }
