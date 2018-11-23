@@ -162,7 +162,7 @@ Route::get('/', function () {
 })->domain('docs.example.com');
 ```
 
-Using `group`:
+Using group:
 
 ```
 Route::group(['domain' => 'api.example.com'], function () {
