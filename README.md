@@ -1,17 +1,21 @@
 # Swish Router
 
 ## Installation
+
 ```
 composer require atlantisphp/swish
 ```
 
 ## Introduction
+
 Swish Router is a simple and easy to use Routing System for PHP. You can implement it on any PHP project.
 
 ## Getting Started
+
 Here is a quick example.
 
-*index.php file stored in `/public` directory*
+_index.php file stored in `/public` directory_
+
 ```php
 <?php
 
@@ -75,7 +79,7 @@ AtlantisPHP\Swish\Route::redirect('/home', '/')->name('go-home');
 AtlantisPHP\Swish\Route::dispatch();
 ```
 
-*htaccess file stored in /public*
+_htaccess file stored in /public_
 
 ```
 Options -Multiviews -Indexes
@@ -88,11 +92,12 @@ RewriteRule ^(.+)$ index.php [QSA,L]
 ```
 
 ### Available Router Methods
+
 The router allows you to register routes that respond to any HTTP verb:
 
 ```
 Route::get(string $uri, $callback);
-Route::poststring ($uri, $callback);
+Route::post(string ($uri, $callback);
 Route::put(string $uri, $callback);
 Route::head(string $uri, $callback);
 Route::delete(string $uri, $callback);
@@ -102,9 +107,10 @@ Route::any(string $uri, $callback);
 Route::if(array $verbs, string $uri, $callback);
 Route::redirect(string $uri, string $redirect);
 Route::view(string $uri, string $view); // uses the get verb
+Route::group(array $args, closure $callback);
 ```
 
-A $callback can either be a closure or a controller action.
+A \$callback can either be a closure or a controller action.
 
 Here's what the syntax looks like:
 
@@ -117,6 +123,7 @@ Route::if(['GET', 'POST'], '/profile/{id}', 'AccountController@showProfile');
 ```
 
 ## Named Routes
+
 Named routes allow the convenient generation of URLs or redirects for specific routes. You may specify a name for a route by chaining the name method onto the route definition:
 
 ```
@@ -132,6 +139,7 @@ Route::get('/user/profile', 'UserProfileController@show')->name('profile');
 ```
 
 ## Custom variables
+
 Custom variables are variables you can add to a route or expected variables you can replace.
 
 Here's how you can add variables to a route.
@@ -142,7 +150,41 @@ Route::get('/post/{id}', 'PostController@show')->variables([
 ]);
 ```
 
+## Domain Routing
+
+You can easily create routes for specific domains. Here is a quick example:
+
+```
+Route::get('/', function () {
+
+  // route to docs.example.com
+
+})->domain('docs.example.com');
+```
+
+Using `group`:
+
+```
+Route::group(['domain' => 'api.example.com'], function () {
+
+  Route::get('/users', 'ApiController@getUsers');
+  Route::get('/admins', 'ApiController@getAdmins');
+
+});
+```
+
+Here is a "wildcard" example:
+
+```
+Route::get('/', function ($user) {
+
+})->domain('{user}.example.com');
+
+// e.g. donald.example.com
+```
+
 ## View Routes
+
 To use the `Route::view` action, you must connect it to the `Medusa` package.
 
 Here's how you can do that:
@@ -155,7 +197,7 @@ composer require atlantisphp/medusa
 
 Then configure `Medusa` to work with `Swish`.
 
-*index.php file stored in `/public` directory*
+_index.php file stored in `/public` directory_
 
 ```
 <?php

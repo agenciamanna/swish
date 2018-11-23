@@ -1,18 +1,16 @@
 {
   "name": "atlantisphp/swish",
   "description": "Simple and easy to use PHP routing system.",
-  "version": "1.4",
+  "version": "1.5",
   "license": "MIT",
   "type": "package",
   "require": {
     "php": ">=7.1.3"
   },
-  "authors": [
-    {
-      "name": "Donald Pakkies",
-      "email": "donaldpakkies@gmail.com"
-    }
-  ],
+  "authors": [{
+    "name": "Donald Pakkies",
+    "email": "donaldpakkies@gmail.com"
+  }],
   "autoload": {
     "psr-4": {
       "AtlantisPHP\\Swish\\": ""
