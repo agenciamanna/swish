@@ -117,7 +117,21 @@ class Route
 	 *
 	 * @var $callback
 	 */
-	private $callback;
+  private $callback;
+
+  /**
+   * $response
+   *
+   * @var mixed
+   */
+  private $response;
+
+  /**
+   * $domain
+   *
+   * @var string
+   */
+  private $domain;
 
 	/**
 	 * Route middlware
@@ -181,6 +195,7 @@ class Route
 		$file = isset(debug_backtrace()[1]['file']) ? basename(debug_backtrace()[1]['file']) : null;
 
     $globalPattern = '';
+    $globalDomain  = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
 
     $stack = array_reverse(debug_backtrace());
 
@@ -203,25 +218,31 @@ class Route
         if (isset($args['namespace'])) {
           $globalNamespace .= $args['namespace'] . '\\';
         }
+
+        $globalDomain = isset($args['domain']) ? $args['domain'] : $globalDomain;
       }
     }
 
 		$pattern = substr($pattern, 0, 1) == "/" ? $pattern : '/' . $pattern;
 
-		$route->id = uniqid('route_');
-		$route->pattern = $globalPattern . $pattern;
-		$route->callback = is_string($callback) ? $globalNamespace . $callback : $callback;
-		$route->redirect = $redirect;
-		$route->view = $view;
-		$route->file = $file;
-    $route->required = $route->countVaribales($pattern);
+		$route->id         = uniqid('route_');
+    $route->pattern    = $globalPattern . $pattern;
+    $route->response   = null;
+    $route->domain     = $globalDomain;
+		$route->callback   = is_string($callback) ? $globalNamespace . $callback : $callback;
+		$route->redirect   = $redirect;
+		$route->view       = $view;
+		$route->file       = $file;
+    $route->required   = $route->countVaribales($pattern);
     $route->middleware = $globalMiddleware;
 
 		self::$routes[] = [
 			'id' => $route->id,
 			'name' => '',
 			'middleware' => $route->middleware,
-			'pattern' => $route->pattern,
+      'pattern' => $route->pattern,
+      'response' => null,
+      'domain' => $route->domain,
 			'callback' => $route->callback,
 			'method' => $method,
 			'redirect' => $route->redirect,
@@ -279,7 +300,20 @@ class Route
     self::$routes[$this->key]['middleware'] = array_merge(self::$routes[$this->key]['middleware'], func_get_args());
 
 		return $this;
-	}
+  }
+
+  /**
+   * Set route domain
+   *
+   * @param string $host
+   * @return object
+   */
+  public function domain(string $host)
+  {
+    self::$routes[$this->key]['domain'] = $host;
+
+    return $this;
+  }
 
 	/**
 	 * Set route variables
@@ -455,30 +489,36 @@ class Route
 
 		$router->checkEvents();
 
-		if ($name != null) {
-			return $router->singleDispatch($name, null, $variables);
-		}
+		if ($name != null) return $router->singleDispatch($name, null, $variables);
 
 		foreach($routes as $route) {
 			if (in_array($router->method(), $route['method'])) {
-				$matches = $router->match($route['pattern']);
+        $isDomain = $router->isDomain($route['domain']);
+        $matches  = $router->match($route['pattern']);
 
 				if (isset($route['variables']) && $route['variables'] !== null) {
 					foreach ($route['variables'] as $key => $value) {
 						$matches[$key] = $value;
 					}
-				}
+        }
 
-				if ($matches) {
+				if ($matches && $isDomain) {
+
+          $patternVars = is_array($matches) ? $matches : [];
+          $domainVars  = is_array($isDomain) ? $isDomain : [];
+          $variables   = array_merge($domainVars, $patternVars);
+
+          $route['required'] = count($variables);
+
 					self::$current = $route;
-					$route['variables'] = is_bool($matches) ? [] : $matches;
+					$route['variables'] = $variables;
 
 					if ($route['redirect']) {
 						return $router->to($route);
 					}
 					else if ($route['view']) {
 						if (is_callable(self::$viewEvent)) {
-							$router->callView(self::$viewEvent, $matches);
+							$router->callView(self::$viewEvent, $variables);
 						}
 						else {
 							$router->failed($routes, 405);
@@ -486,7 +526,7 @@ class Route
 						return;
 					}
 
-					return $router->handle((object)$route, is_bool($matches) ? [] : $matches);
+					return $router->handle((object)$route, $variables);
 				}
 			}
 		}
@@ -622,7 +662,9 @@ class Route
 			if ($this->match($route['pattern'])) {
 				return true;
 			}
-		}
+    }
+
+    return false;
 	}
 
 	/**
@@ -661,18 +703,22 @@ class Route
 	private function handle($route, $matches)
 	{
 		if (is_string($route->callback)) {
-      $fullyQualified = explode('@', $route->callback)[0];
+      $callback = $route->callback;
 
-      $controller = substr($fullyQualified, 0, 1) == '\\' ? $fullyQualified : self::$controller['namespace'] . '\\' . explode('@', $route->callback)[0];
+      if (!str_contains($callback, '@')) $callback = $callback . '@handle';
+
+      $fullyQualified = explode('@', $callback)[0];
+
+      $controller = substr($fullyQualified, 0, 1) == '\\' ? $fullyQualified : self::$controller['namespace'] . '\\' . explode('@', $callback)[0];
 
 			if (!class_exists($controller)) $this->exception(
 				"Class '$controller' not found."
 			);
 
 			$class = new $controller;
-			$method = explode('@', $route->callback)[1];
+      $method = explode('@', $callback)[1];
 
-			if (!method_exists($class, $method)) $this->exception(
+      if (!method_exists($class, $method)) $this->exception(
 				"Method $controller::$method() does not exist"
 			);
 
@@ -681,7 +727,7 @@ class Route
 				$matches = $response;
 			}
 
-			call_user_func_array(
+			$route->response = call_user_func_array(
 				[$class, $method],
 				is_array($matches) ? $matches : []
 			);
@@ -691,18 +737,18 @@ class Route
 			return true;
 		}
 
-		$response = $this->callBefore($route, $route->callback);
+		$response = $this->callBefore($route, $callback);
 
 		if ($response != [] || $response !== false) {
 			$matches = $response;
 		}
 
-		call_user_func_array(
-			$route->callback,
+		$route->response = call_user_func_array(
+			$callback,
 			is_array($matches) ? $matches : []
 		);
 
-		$this->callAfter($route, $route->callback);
+		$this->callAfter($route, $callback);
 
 		return true;
 	}
@@ -798,7 +844,31 @@ class Route
 	private function method()
 	{
 		return $_SERVER['REQUEST_METHOD'];
-	}
+  }
+
+  /**
+   * Match domains
+   *
+   * @param string $domain
+   * @return bool
+   */
+  private function isDomain(string $domain)
+  {
+    $pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $domain);
+    $pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
+
+		preg_match(
+      $pattern_regex,
+			$_SERVER['HTTP_HOST'],
+			$matches
+    );
+
+    if ($_SERVER['HTTP_HOST'] == $domain) return true;
+
+    if ($matches) {
+      return $this->clean($matches);
+    }
+  }
 
 	/**
 	 * Match route with current url
@@ -833,13 +903,13 @@ class Route
     }
 
 		$pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
-		$pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
+    $pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
 
 		preg_match(
-			$pattern_regex,
+      $pattern_regex,
 			trim($url, "/"),
 			$matches
-		);
+    );
 
 		if (count($matches) == 1 && $pattern == '') {
 			return true;
