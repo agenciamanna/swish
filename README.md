@@ -107,6 +107,7 @@ Route::any(string $uri, $callback);
 Route::if(array $verbs, string $uri, $callback);
 Route::redirect(string $uri, string $redirect);
 Route::view(string $uri, string $view); // uses the get verb
+Route::group(array $args, closure $callback);
 ```
 
 A \$callback can either be a closure or a controller action.
@@ -147,6 +148,39 @@ Here's how you can add variables to a route.
 Route::get('/post/{id}', 'PostController@show')->variables([
   'id' => 2
 ]);
+```
+
+## Domain Routing
+
+You can easily create routes for specific domains. Here is a quick example:
+
+```
+Route::get('/', function () {
+
+  // route to docs.example.com
+
+})->domain('docs.example.com');
+```
+
+Using `group`:
+
+```
+Route::group(['domain' => 'api.example.com'], function () {
+
+  Route::get('/users', 'ApiController@getUsers');
+  Route::get('/admins', 'ApiController@getAdmins');
+
+});
+```
+
+Here is a "wildcard" example:
+
+```
+Route::get('/', function ($user) {
+
+})->domain('{user}.example.com');
+
+// e.g. donald.example.com
 ```
 
 ## View Routes
