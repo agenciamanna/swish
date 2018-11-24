@@ -702,9 +702,9 @@ class Route
 	 */
 	private function handle($route, $matches)
 	{
-		if (is_string($route->callback)) {
-      $callback = $route->callback;
+    $callback = $route->callback;
 
+		if (is_string($route->callback)) {
       if (!str_contains($callback, '@')) $callback = $callback . '@handle';
 
       $fullyQualified = explode('@', $callback)[0];
