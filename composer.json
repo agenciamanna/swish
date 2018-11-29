@@ -1,7 +1,7 @@
 {
   "name": "atlantisphp/swish",
   "description": "Simple and easy to use PHP routing system.",
-  "version": "1.5.1",
+  "version": "1.5.1.1",
   "license": "MIT",
   "type": "package",
   "require": {

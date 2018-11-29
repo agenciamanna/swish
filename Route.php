@@ -206,7 +206,7 @@ class Route
         if (isset($args['middleware'])) {
           $globalMiddleware = array_merge(
             $globalMiddleware,
-            $args['middleware']
+            is_array($args['middleware']) ? $args['middleware'] : [$args['middleware']]
           );
         }
 
