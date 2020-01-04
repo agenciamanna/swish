@@ -316,6 +316,19 @@ class Route
   }
 
   /**
+   * Set route regex
+   *
+   * @param string $regex
+   * @return object
+   */
+  public function regex(string $regex)
+  {
+    self::$routes[$this->key]['regex'] = $regex;
+
+    return $this;
+  }
+
+  /**
    * Set route variables
    *
    * @param array $variables
@@ -494,7 +507,7 @@ class Route
     foreach($routes as $route) {
       if (in_array($router->method(), $route['method'])) {
         $isDomain = $router->isDomain($route['domain']);
-        $matches  = $router->match($route['pattern']);
+        $matches  = $router->match($route);
 
         if (isset($route['variables']) && $route['variables'] !== null) {
           foreach ($route['variables'] as $key => $value) {
@@ -657,7 +670,7 @@ class Route
   private function isNotAllowed($routes)
   {
     foreach($routes as $route) {
-      if ($this->match($route['pattern'])) {
+      if ($this->match($route)) {
         return true;
       }
     }
@@ -872,28 +885,22 @@ class Route
   /**
    * Match route with current url
    *
-   * @param  string $pattern
-   * @return array  $matches
+   * @param array $route
+   * @return array $matches
    */
-  private function match($pattern)
+  private function match($route)
   {
-    $pattern = substr($pattern, -1) == '/' ? substr($pattern, 0, strlen($pattern) - 1) : $pattern ;
+    $pattern = substr($route['pattern'], -1) == '/' ? substr($route['pattern'], 0, strlen($route['pattern']) - 1) : $route['pattern'] ;
 
-    /**
-     * match wildcard route
-     */
+    /** match wildcard route */
     if ($pattern == '/*') {
       $matches = $this->clean(explode('/', $this->url()), true);
-      if (count($matches) == 0) {
-        return true;
-      }
+      if (count($matches) == 0) return true;
 
       return $matches;
     }
 
-    /**
-     * match prefixed wildcard route
-     */
+    /** match prefixed wildcard route */
     if (substr($pattern, strlen($pattern) - 2, 2) == "/*") {
       $url = $this->url();
 
@@ -903,29 +910,22 @@ class Route
     }
 
     $url = substr($this->url(), strlen($this->url()) - 1, 1);
-
-    if ($url == '?') {
-      $url = substr($this->url(), 0, strlen($this->url()) - 1);
-    } else {
-      $url = $this->url();
-    }
+    $url = $url == '?' ? substr($this->url(), 0, strlen($this->url()) - 1) : $this->url();
 
     if (substr($url, strlen($url) - 1, 1) == '/') {
       $url = substr($url, 0, strlen($url) - 1);
     }
 
-    $pattern_regex = preg_replace("/\{(.*?)\}/", "(?P<$1>[\w-]+)", $pattern);
-    $pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
+    if (isset($route['regex'])) {
+      $pattern_regex = $route['regex'];
+    } else {
+      $pattern_regex = preg_replace("/\{(.*?)-.\}/", "(?P<$1>[\w-]+)", $pattern);
+      $pattern_regex = "#^" . trim($pattern_regex, "/") . "$#";
+    }
 
-    preg_match(
-      $pattern_regex,
-      trim($url, "/"),
-      $matches
-    );
+    preg_match($pattern_regex, trim($url, "/"), $matches);
 
-    if (count($matches) == 1 && $pattern == '') {
-      return true;
-    } else if ($pattern == $url) {
+    if ((count($matches) == 1 && $pattern == '') || $pattern == $url || $route['regex'] && $matches) {
       return true;
     }
 
